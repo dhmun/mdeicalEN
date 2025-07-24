@@ -1,9 +1,3 @@
-Of course. Here is a professional `README.md` file written in English, perfect for your GitHub repository.
-
-Copy the content below and save it as a `README.md` file in your project's root folder.
-
------
-
 # North Korea Medical Facilities - Interactive Map
 
 This project generates a dynamic, interactive SVG map visualizing the distribution of medical facilities across North Korea, based on CSV/Excel data. It was created to allow users to intuitively explore and analyze complex hierarchical data.
