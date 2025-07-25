@@ -2,7 +2,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const summaryData = window.summaryMedicalData || {};
     const detailedData = window.detailedMedicalData || {};
-
+    
     const mapContainer = document.querySelector('.map-container');
     const svg = document.getElementById('svgMain');
     if (!svg || !mapContainer) return;
@@ -15,24 +15,25 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalTitle = document.getElementById('modal-title');
     const modalCloseBtn = document.getElementById('modal-close');
     const modalTableBody = document.querySelector('#modal-table tbody');
-
+    
     const provinces = svg.querySelectorAll('g[id]');
     let activeProvinceShape = null;
 
     provinces.forEach(province => {
         const provinceId = province.id;
         const shape = province.querySelector('.shape');
-
+        
         if (shape && summaryData[provinceId]) {
             shape.addEventListener('mouseover', e => {
                 const data = summaryData[provinceId];
                 tooltip.style.opacity = 1;
                 tooltip.innerHTML = `<b>${data.name}</b><br>Total Facilities: ${data['Total']}`;
             });
-           shape.addEventListener('mousemove', e => {
+            shape.addEventListener('mousemove', e => {
                 const rect = mapContainer.getBoundingClientRect();
                 tooltip.style.left = `${e.clientX - rect.left + 15}px`;
                 tooltip.style.top = `${e.clientY - rect.top + 15}px`;
+            });
             shape.addEventListener('mouseout', () => { tooltip.style.opacity = 0; });
 
             shape.addEventListener('click', () => {
@@ -45,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 modalTitle.textContent = `${provinceName} - Detailed List (${facilities.length} facilities)`;
                 modalTableBody.innerHTML = '';
-
+                
                 if (facilities.length > 0) {
                     const rowsHtml = facilities.map(f => `
                         <tr>
@@ -62,7 +63,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     });
-
+    
     modalCloseBtn.addEventListener('click', () => modalOverlay.classList.remove('visible'));
     modalOverlay.addEventListener('click', e => {
         if (e.target === modalOverlay) modalOverlay.classList.remove('visible');

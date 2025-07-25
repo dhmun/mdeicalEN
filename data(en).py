@@ -3,31 +3,29 @@ import json
 import sys
 
 # -------------------------------------------------------------------
-# Step 1: CSV 파일 읽기
+# Step 1: 파일 읽기
 # -------------------------------------------------------------------
 try:
-    df = pd.read_csv('cleaned_data.csv')
-    print("✅ 'data.xlsx - Sheet1.csv' 파일을 성공적으로 불러왔습니다.")
+    df = pd.read_csv('data.xlsx - 1.csv')
+    print("✅ 'data.xlsx - 1.csv' 파일을 성공적으로 불러왔습니다.")
 except FileNotFoundError:
-    print("❌ 'data.xlsx - Sheet1.csv' 파일을 찾을 수 없습니다.")
+    print("❌ 'data.xlsx - 1.csv' 파일을 찾을 수 없습니다.")
     sys.exit()
 except Exception as e:
     print(f"파일을 읽는 중 오류가 발생했습니다: {e}")
     sys.exit()
 
 # -------------------------------------------------------------------
-# Step 2: 데이터 가공 (정확한 열 이름 사용)
+# Step 2: 데이터 가공
 # -------------------------------------------------------------------
 
-# ✨ 핵심 수정 1: 사용자님이 알려주신 정확한 열 이름을 사용합니다.
-상세_주소_열_이름 = 'City'
-시설_이름_열 = 'Name'
+상세_주소_열_이름 = 'city'
+시설_이름_열 = 'name'
 
-# SVG id와 영어 지역명을 매칭하기 위한 딕셔너리
 province_map = {
     'Pyongyang': 'pyongyang', 'South Pyongan': 'southPyongang', 'North Pyongan': 'northPyongang',
     'South Hwanghae': 'southHwanghae', 'North Hwanghae': 'northHwanghae', 'Kangwon': 'kangwon',
-    'South Hamgyong': 'southHamgyong', 'North Hamgyong': 'northHamgyong', 'Chagang': 'chagang',
+    'South Hamgyong': 'southHamgyong', 'North Hamgyong': 'northHamgyong', 'Jagang': 'Jagang',
     'Ryanggang': 'ryanggang', 'Rason': 'rason'
 }
 
@@ -42,30 +40,31 @@ df['province_name'] = df[상세_주소_열_이름].apply(get_province_en)
 df.fillna('', inplace=True)
 df.dropna(subset=['province_name'], inplace=True)
 
-# --- 데이터 1: 도별 합계 (툴팁용) ---
 summary_json = {}
 grouped_by_province = df.groupby('province_name')
 for province_name, group in grouped_by_province:
     if province_name in province_map:
         svg_id = province_map[province_name]
-        summary_json[svg_id] = {'name': province_name, 'Total': len(group)}
+        category_counts = group['Category'].value_counts().to_dict()
+        summary_data = {'name': province_name, 'Total': len(group)}
+        summary_data.update(category_counts)
+        summary_json[svg_id] = summary_data
 
-# --- 데이터 2: 도별 상세 목록 (테이블용) ---
-display_cols = ['Category', 시설_이름_열, 상세_주소_열_이름, 'Nearby facilities']
 detailed_json = {}
 for prov_name, svg_id in province_map.items():
     province_df = df[df['province_name'] == prov_name].copy()
+    display_cols = ['Category', 시설_이름_열, 상세_주소_열_이름, 'Nearby facilities']
     valid_display_cols = [col for col in display_cols if col in province_df.columns]
     records = province_df[valid_display_cols].rename(columns={
-        시설_이름_열: 'Name',
-        상세_주소_열_이름: 'Address',
+        시설_이름_열: 'Name', 
+        상세_주소_열_이름: 'Address', 
         'Nearby facilities': 'Nearby_Facilities'
     }).to_dict('records')
     detailed_json[svg_id] = records
 
 summary_json_string = json.dumps(summary_json, indent=2, ensure_ascii=False)
 detailed_json_string = json.dumps(detailed_json, indent=2, ensure_ascii=False)
-print("\n✅ SVG 지도 연동용 JSON 데이터 생성을 완료했습니다.")
+print("\n✅ SVG 지도 연동용 영문 JSON 데이터 생성을 완료했습니다.")
 # -------------------------------------------------------------------
 # Step 3: 분리된 HTML, CSS, JavaScript 파일 생성
 # -------------------------------------------------------------------
@@ -154,7 +153,7 @@ svg_code = """
 
  </g>
 
- <g id="chagang" style="fill: rgb(243, 203, 188);">
+ <g id="Jagang" style="fill: rgb(243, 203, 188);">
 
 
 
@@ -221,7 +220,7 @@ h1 { text-align: center; color: #333; }
 .shape { stroke: #ffffff; stroke-width: 1.5px; transition: fill 0.3s ease; cursor: pointer; fill: #dcdcdc; }
 .shape:hover { fill: #fca951; }
 .shape.active { fill: #f97300; }
-.tooltip { position: absolute; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 10px 15px; border-radius: 5px; font-size: 14px; pointer-events: none; opacity: 0; transition: opacity 0.2s; white-space: nowrap; z-index: 1000; }
+.tooltip { position: fixed; background-color: rgba(0, 0, 0, 0.8); color: white; padding: 10px 15px; border-radius: 5px; font-size: 14px; pointer-events: none; opacity: 0; transition: opacity 0.2s; white-space: nowrap; z-index: 1000; }
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); z-index: 1000; display: none; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease; padding: 15px; box-sizing: border-box; }
 .modal-overlay.visible { display: flex; opacity: 1; }
 .modal-content { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: 100%; max-width: 800px; max-height: 85vh; display: flex; flex-direction: column; }
@@ -234,43 +233,61 @@ h1 { text-align: center; color: #333; }
 .modal-table th { background-color: #f2f2f2; }
 """
 
-# ✨ 핵심 수정 2: JS와 HTML의 테이블 생성 로직을 4개 열에 맞게 수정
+# ✨ 핵심 수정: 툴팁 위치를 동적으로 계산하는 JavaScript 코드
 js_content = """
 document.addEventListener('DOMContentLoaded', function () {
     const summaryData = window.summaryMedicalData || {};
     const detailedData = window.detailedMedicalData || {};
-
-    const mapContainer = document.querySelector('.map-container');
+    
     const svg = document.getElementById('svgMain');
-    if (!svg || !mapContainer) return;
+    if (!svg) return;
 
     const tooltip = document.createElement('div');
     tooltip.className = 'tooltip';
-    mapContainer.appendChild(tooltip);
+    document.body.appendChild(tooltip); // 툴팁은 body에 직접 추가해야 위치 계산이 정확합니다.
 
     const modalOverlay = document.getElementById('modal-overlay');
     const modalTitle = document.getElementById('modal-title');
     const modalCloseBtn = document.getElementById('modal-close');
     const modalTableBody = document.querySelector('#modal-table tbody');
-
+    
     const provinces = svg.querySelectorAll('g[id]');
     let activeProvinceShape = null;
 
     provinces.forEach(province => {
         const provinceId = province.id;
         const shape = province.querySelector('.shape');
-
+        
         if (shape && summaryData[provinceId]) {
             shape.addEventListener('mouseover', e => {
                 const data = summaryData[provinceId];
+                let detailsHtml = Object.entries(data).filter(([key]) => !['name', 'Total'].includes(key)).map(([key, value]) => `<p style="margin: 4px 0;">${key}: ${value}</p>`).join('');
                 tooltip.style.opacity = 1;
-                tooltip.innerHTML = `<b>${data.name}</b><br>Total Facilities: ${data['Total']}`;
+                tooltip.innerHTML = `<h3 style="margin:0 0 8px;padding-bottom:5px;border-bottom:1px solid #777;">${data.name}</h3><p><strong>Total: ${data['Total']}</strong></p><hr style="margin:5px 0;">${detailsHtml}`;
             });
+
             shape.addEventListener('mousemove', e => {
-                const rect = mapContainer.getBoundingClientRect();
-                tooltip.style.left = `${e.clientX - rect.left + 15}px`;
-                tooltip.style.top = `${e.clientY - rect.top + 15}px`;
+                const tooltipWidth = tooltip.offsetWidth;
+                const tooltipHeight = tooltip.offsetHeight;
+                const cursorPadding = 15; // 커서와의 간격
+                
+                let left = e.clientX + cursorPadding;
+                let top = e.clientY + cursorPadding;
+
+                // 화면 오른쪽 가장자리를 벗어나는지 확인
+                if (left + tooltipWidth > window.innerWidth) {
+                    left = e.clientX - tooltipWidth - cursorPadding;
+                }
+                
+                // 화면 아래쪽 가장자리를 벗어나는지 확인
+                if (top + tooltipHeight > window.innerHeight) {
+                    top = e.clientY - tooltipHeight - cursorPadding;
+                }
+
+                tooltip.style.left = `${left}px`;
+                tooltip.style.top = `${top}px`;
             });
+            
             shape.addEventListener('mouseout', () => { tooltip.style.opacity = 0; });
 
             shape.addEventListener('click', () => {
@@ -283,7 +300,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 modalTitle.textContent = `${provinceName} - Detailed List (${facilities.length} facilities)`;
                 modalTableBody.innerHTML = '';
-
+                
                 if (facilities.length > 0) {
                     const rowsHtml = facilities.map(f => `
                         <tr>
@@ -300,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     });
-
+    
     modalCloseBtn.addEventListener('click', () => modalOverlay.classList.remove('visible'));
     modalOverlay.addEventListener('click', e => {
         if (e.target === modalOverlay) modalOverlay.classList.remove('visible');
@@ -320,25 +337,25 @@ html_template = f"""
     <h1>North Korea Medical Facilities: Interactive Map</h1>
     <div class="map-container">
         {svg_code}
-        <div class="modal-overlay" id="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title" id="modal-title">Details</h2>
-                    <button class="modal-close" id="modal-close">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <table class="modal-table" id="modal-table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Name</th>
-                                <th>Address</th>
-                                <th>Nearby Facilities</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
+    </div>
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Details</h2>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <table class="modal-table" id="modal-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Name</th>
+                            <th>Address</th>
+                            <th>Nearby Facilities</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -350,12 +367,12 @@ html_template = f"""
 </body>
 </html>
 """
-
+    
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_template)
 with open("style.css", "w", encoding="utf-8") as f:
     f.write(css_content)
 with open("script.js", "w", encoding="utf-8") as f:
     f.write(js_content)
-
+    
 print("\n✅ 최종 결과물 'index.html', 'style.css', 'script.js' 파일이 성공적으로 생성되었습니다!")
