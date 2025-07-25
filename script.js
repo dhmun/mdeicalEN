@@ -30,26 +30,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 tooltip.innerHTML = `<b>${data.name}</b><br>Total Facilities: ${data['Total']}`;
             });
            shape.addEventListener('mousemove', e => {
-                const tooltipWidth = tooltip.offsetWidth;
-                const tooltipHeight = tooltip.offsetHeight;
-                const cursorPadding = 15; // 커서와의 간격
-                
-                let left = e.clientX + cursorPadding;
-                let top = e.clientY + cursorPadding;
-
-                // 화면 오른쪽 가장자리를 벗어나는지 확인
-                if (left + tooltipWidth > window.innerWidth) {
-                    left = e.clientX - tooltipWidth - cursorPadding;
-                }
-                
-                // 화면 아래쪽 가장자리를 벗어나는지 확인
-                if (top + tooltipHeight > window.innerHeight) {
-                    top = e.clientY - tooltipHeight - cursorPadding;
-                }
-
-                tooltip.style.left = `${left}px`;
-                tooltip.style.top = `${top}px`;
-            });
+                const rect = mapContainer.getBoundingClientRect();
+                tooltip.style.left = `${e.clientX - rect.left + 15}px`;
+                tooltip.style.top = `${e.clientY - rect.top + 15}px`;
             shape.addEventListener('mouseout', () => { tooltip.style.opacity = 0; });
 
             shape.addEventListener('click', () => {
